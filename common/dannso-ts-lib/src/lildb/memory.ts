@@ -102,12 +102,15 @@ export class LilDbMemory<ValueType> extends LilDb<ValueType> {
     return {
       values: paginatedDocs,
       page: page,
-      numberOfValuesTotal: docs.length,
     };
   }
 
   async currentTx(): Promise<number> {
     return this.tx;
+  }
+
+  async hintIndex(name: string, selectors: string[]): Promise<void> {
+    // is a no-op here for now
   }
 }
 

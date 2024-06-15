@@ -45,12 +45,12 @@ export interface Query {
   reverse?: boolean;
   limit?: number;
   page?: number;
+  includeTombstoned?: boolean;
 }
 
 export interface QueryResult<ValueType> {
   values: Doc<ValueType>[];
   page: number;
-  numberOfValuesTotal: number;
 }
 
 export abstract class LilDb<ValueType> {
@@ -58,6 +58,8 @@ export abstract class LilDb<ValueType> {
   abstract query(q: Query): Promise<QueryResult<ValueType>>;
   abstract currentTx(): Promise<number>;
   abstract id: string;
+
+  abstract hintIndex(name: string, selectors: string[]): Promise<void>;
 
   async findOne(selector: QueryFilter): Promise<Doc<ValueType> | null> {
     const res = await this.query({
