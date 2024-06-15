@@ -1,4 +1,3 @@
-import { isConstructorDeclaration, readJsonConfigFile } from "typescript";
 import { secureRandomId } from "../crypto/random";
 import { JSONValue } from "../data/json";
 
@@ -59,7 +58,6 @@ async function loadDb(db: sqlite3.Database) {
 }
 
 function buildSqlPath(queryPath: string): string {
-  // [path, isJson]
   if (queryPath === "$id") {
     return `id`;
   } else if (queryPath === "$tx") {
