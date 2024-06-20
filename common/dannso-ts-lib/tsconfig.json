@@ -11,11 +11,11 @@
       // compilerOptions specified here will override those declared below,
       // but *only* in ts-node.  Useful if you want ts-node and tsc to use
       // different options with a single tsconfig.json.
-      "moduleResolution": "NodeNext",
-      "lib": ["DOM"]
     }
   },
   "compilerOptions": {
     // typescript options here
+    "lib": ["dom", "ES2023"],
+    "moduleResolution": "Node16"
   }
 }

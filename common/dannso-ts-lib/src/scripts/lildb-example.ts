@@ -1,7 +1,6 @@
 import { isConstructorDeclaration } from "typescript";
 import { LilDbStorageManagerSqliteInMemory } from "../lildb/sqlite";
 
-//console.log("CURRENT-TX ", await db.currentTx());
 async function main() {
   type Foo = {
     msg: string;
@@ -20,11 +19,7 @@ async function main() {
   console.log("query");
   const allDocs = await db.query({
     selector: {
-      //$id: "id1",
-      msg: { $gt: "a" },
-      "yeah.fooa": {
-        $eq: "foo",
-      },
+      $id: "id1",
     },
     sort: ["msg"],
   });

@@ -22,6 +22,7 @@ export interface Doc<ValueType> {
   value: ValueType;
   tx: number; // per db transaction counter of the last write to this document
   revision: number; // number of writes to this document in this database
+  isTombstoned: boolean;
 }
 
 type AssertableValue = string | number | undefined;
@@ -57,6 +58,7 @@ export abstract class LilDb<ValueType> {
   abstract put(id: string, value: ValueType): Promise<void>;
   abstract query(q: Query): Promise<QueryResult<ValueType>>;
   abstract currentTx(): Promise<number>;
+  abstract delete(id: string): Promise<void>;
   abstract id: string;
 
   abstract hintIndex(name: string, selectors: string[]): Promise<void>;

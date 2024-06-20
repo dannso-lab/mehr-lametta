@@ -102,13 +102,11 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
     this.db = db;
   }
 
-  // select coalesce(max(tx),-1) from docs
-  // create table docs (id TEXT PRIMARY KEY, tx INTEGER, revision INTEGER, val JSON);
-  put(id: string, value: ValueType): Promise<void> {
+  private _put(id: string, value: ValueType, tombstone: number): Promise<void> {
     return new Promise((resolve, reject) => {
       this.db.run(
-        `insert into docs (id, val, tx, revision, tombstone) VALUES (?, json(?), (select coalesce(max(tx),0) from docs)+1, 0, FALSE) ON CONFLICT(id) DO UPDATE SET tx=excluded.tx, val=excluded.val, revision=revision+1, tombstone=excluded.tombstone`,
-        [id, JSON.stringify(value)],
+        `insert into docs (id, val, tx, revision, tombstone) VALUES (?, json(?), (select coalesce(max(tx),0) from docs)+1, 0, ?) ON CONFLICT(id) DO UPDATE SET tx=excluded.tx, val=excluded.val, revision=revision+1, tombstone=excluded.tombstone`,
+        [id, JSON.stringify(value), tombstone],
         (error) => {
           if (error) {
             reject(error);
@@ -120,9 +118,17 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
     });
   }
 
+  put(id: string, value: ValueType): Promise<void> {
+    return this._put(id, value, 0);
+  }
+
+  delete(id: string): Promise<void> {
+    return this._put(id, {} as any, 1);
+  }
+
   query(q: Query): Promise<QueryResult<ValueType>> {
     return new Promise<QueryResult<ValueType>>(async (resolve, reject) => {
-      let stmt = `select id, val, tx, revision from docs`;
+      let stmt = `select id, val, tx, revision, tombstone from docs`;
       let params: any[] = [];
 
       // selectors
@@ -143,6 +149,9 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
           }
         }
       );
+      if (!q.includeTombstoned) {
+        whereClauses.push(["tombstone = ?", 0]);
+      }
       if (whereClauses.length > 0) {
         stmt += ` WHERE ${whereClauses
           .map((clause) => clause[0])
@@ -192,6 +201,7 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
               revision: row.revision,
               tx: row.tx,
               value: JSON.parse(row.val),
+              isTombstoned: row.tombstone !== 0,
             };
           });
           resolve({

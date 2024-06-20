@@ -1,9 +1,10 @@
-import { expect, test, suite } from "vitest";
+import { expect, test, suite, expectTypeOf } from "vitest";
 
 import { LilDb, LilDbStorageManager } from "./common";
 
 import { LilDbStorageManagerMemory } from "./memory";
 import { LilDbStorageManagerSqliteInMemory } from "./sqlite";
+import { visitFunctionBody } from "typescript";
 
 type Animal = {
   animal: string;
@@ -75,6 +76,7 @@ function testForStorageManager(
         },
         tx: 1,
         revision: 0,
+        isTombstoned: false,
       });
       // 3
       await db.put("mykey", { foo: "kram" });
@@ -85,6 +87,7 @@ function testForStorageManager(
         },
         tx: 2,
         revision: 1,
+        isTombstoned: false,
       });
     });
 
@@ -102,6 +105,7 @@ function testForStorageManager(
         },
         tx: 1,
         revision: 0,
+        isTombstoned: false,
       });
       expect(await db.findOne({ $id: "mykey2" })).toStrictEqual({
         id: "mykey2",
@@ -110,6 +114,7 @@ function testForStorageManager(
         },
         tx: 2,
         revision: 0,
+        isTombstoned: false,
       });
       // 3
       await db.put("mykey1", { foo: "kram" });
@@ -120,6 +125,8 @@ function testForStorageManager(
         },
         tx: 3,
         revision: 1,
+
+        isTombstoned: false,
       });
       expect(await db.findOne({ $id: "mykey2" })).toStrictEqual({
         id: "mykey2",
@@ -128,6 +135,8 @@ function testForStorageManager(
         },
         tx: 2,
         revision: 0,
+
+        isTombstoned: false,
       });
     });
 
@@ -319,6 +328,42 @@ function testForStorageManager(
     });
     //expect(resD.numberOfValuesTotal).toBe(5);
     expect(resD.values.map((doc) => doc.value.animal)).toStrictEqual([]);
+  });
+
+  test("basic deletion functionality", async () => {
+    // given
+    const db = await storageManager.open<Animal>("deletion-basic");
+    await inserTestData(db);
+    expect(await db.findOne({ $id: "id10" })).not.toBeNull();
+    //when
+    await db.delete("id10");
+    //then
+    expect(await db.findOne({ $id: "id10" })).toBeNull();
+  });
+
+  test("find tombstoned deletions", async () => {
+    // given
+    const db = await storageManager.open<Animal>("deletion-with-tombstone");
+    await inserTestData(db);
+    await db.put("delete-id", {
+      animal: "SwryIBeGoneSoon",
+      num: 12345,
+    });
+    const originalDoc = await db.findOne({ $id: "delete-id" });
+    expect(originalDoc).not.toBeNull();
+    expect(await db.findOne({ $id: "id10" })).not.toBeNull();
+    //when
+    await db.delete("delete-id");
+    //then
+    const withTombStone = await db.query({
+      selector: { $id: "delete-id" },
+      includeTombstoned: true,
+    });
+    expect(withTombStone.values.length).toBe(1);
+    const tombStonedDocument = withTombStone.values[0];
+    // let's also check that revisions and tx advance  as well
+    expect(tombStonedDocument.revision).toEqual(originalDoc!.revision + 1);
+    expect(tombStonedDocument.tx).toEqual(originalDoc!.tx + 1);
   });
 }
 

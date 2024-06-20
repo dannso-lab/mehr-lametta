@@ -1,6 +1,5 @@
 import { secureRandomId } from "../crypto/random";
 import { JSONValue } from "../data/json";
-import { unimpl } from "../utils/unimpl";
 import {
   DEFAULT_PAGINATION_LIMIT,
   Doc,
@@ -41,7 +40,24 @@ export class LilDbMemory<ValueType> extends LilDb<ValueType> {
       tx,
       revision,
       value,
+      isTombstoned: false,
     });
+  }
+
+  async delete(id: string) {
+    const oldDoc = this.store.get(id);
+    if (oldDoc) {
+      this.tx += 1;
+      const tx = this.tx;
+      const revision = oldDoc.revision + 1;
+      this.store.set(id, {
+        id,
+        tx,
+        revision,
+        value: undefined as any,
+        isTombstoned: true,
+      });
+    }
   }
 
   async query(q: Query): Promise<QueryResult<ValueType>> {
@@ -54,12 +70,14 @@ export class LilDbMemory<ValueType> extends LilDb<ValueType> {
     }
     const sortBy = (q.sort || ["$id"]).map(buildPathAccessor);
 
+    const includeTombstoned = q.includeTombstoned || false;
+
     // filter
     const docs: Doc<ValueType>[] = [];
     this.store.forEach((doc) => {
       let docOk = true;
       for (let check of checks) {
-        if (!check(doc)) {
+        if (!check(doc) || (doc.isTombstoned && !includeTombstoned)) {
           docOk = false;
           break;
         }
