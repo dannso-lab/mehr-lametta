@@ -30,30 +30,18 @@ async function loadDb(db: sqlite3.Database) {
   );
   await sqlrun(
     db,
-    "create table if not exists lilmeta (k TEXT PRIMARY KEY, v TEXT)"
+    "create table if not exists lilmeta (k TEXT PRIMARY KEY, v JSON)"
   );
 
-  let id: string | null = null;
-
-  while (!id) {
-    id = await new Promise<string | null>((resolve, reject) => {
-      db.get(`select v from lilmeta where k = 'dbid'`, (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve((row && (row as any).v) || null);
-        }
-      });
-    });
-
-    if (!id) {
-      const newId = secureRandomId();
-      await sqlrun(db, "insert into lilmeta VALUES('dbid', ?)", [newId]);
-    }
+  const tmpDb = new LilDbSqlite<any>(db, undefined as any);
+  let id: string | null = (await tmpDb.getMeta("id")) as string;
+  if (!id) {
+    id = secureRandomId();
+    await tmpDb.setMeta("id", id);
   }
 
   return {
-    id: id!,
+    id: id,
   };
 }
 
@@ -100,6 +88,45 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
     super();
     this.id = id;
     this.db = db;
+  }
+
+  setMeta<MetaValue extends JSONValue>(
+    id: string,
+    v: MetaValue
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `insert into lilmeta (k, v) VALUES (?, json(?)) ON CONFLICT(k) DO UPDATE SET v=excluded.v`,
+        [id, JSON.stringify(v)],
+        (error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(undefined);
+          }
+        }
+      );
+    });
+  }
+
+  getMeta<MetaValue extends JSONValue>(id: string): Promise<MetaValue | null> {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        `select v from lilmeta where k = ?`,
+        [id],
+        (err, rows: any) => {
+          if (err) {
+            reject(err);
+          } else {
+            if (rows.length === 0) {
+              return resolve(null);
+            } else {
+              resolve(JSON.parse(rows[0].v));
+            }
+          }
+        }
+      );
+    });
   }
 
   private _put(id: string, value: ValueType, tombstone: number): Promise<void> {

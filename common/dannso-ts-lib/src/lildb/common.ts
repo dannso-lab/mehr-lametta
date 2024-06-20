@@ -63,6 +63,14 @@ export abstract class LilDb<ValueType> {
 
   abstract hintIndex(name: string, selectors: string[]): Promise<void>;
 
+  abstract setMeta<MetaValue extends JSONValue>(
+    id: string,
+    v: MetaValue
+  ): Promise<void>;
+  abstract getMeta<MetaValue extends JSONValue>(
+    id: string
+  ): Promise<MetaValue | null>;
+
   async findOne(selector: QueryFilter): Promise<Doc<ValueType> | null> {
     const res = await this.query({
       selector,

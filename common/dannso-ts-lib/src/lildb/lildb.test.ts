@@ -365,6 +365,21 @@ function testForStorageManager(
     expect(tombStonedDocument.revision).toEqual(originalDoc!.revision + 1);
     expect(tombStonedDocument.tx).toEqual(originalDoc!.tx + 1);
   });
+
+  test("set and get meta", async () => {
+    const db = await storageManager.open<Animal>("meta-set-get");
+    await db.setMeta("foo", { bar: 42 });
+    expect(await db.getMeta("foo")).toEqual({ bar: 42 });
+    await db.setMeta("foo", { bar: 32 });
+    expect(await db.getMeta("foo")).toEqual({ bar: 32 });
+    expect(await db.getMeta("non existent")).toBeNull();
+  });
+
+  test("set and get meta simple string", async () => {
+    const db = await storageManager.open<Animal>("meta-set-get-string");
+    await db.setMeta("foo", "bar");
+    expect(await db.getMeta("foo")).toBe("bar");
+  });
 }
 
 testForStorageManager("lildb in-memory", new LilDbStorageManagerMemory());

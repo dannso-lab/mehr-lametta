@@ -20,11 +20,24 @@ export class LilDbMemory<ValueType> extends LilDb<ValueType> {
   private tx: number;
   private store: Map<string, Doc<ValueType>>;
 
+  private meta: Map<string, any>;
+
   constructor() {
     super();
     this.id = secureRandomId();
     this.tx = 0;
     this.store = new Map();
+    this.meta = new Map();
+  }
+
+  async setMeta<MetaValue extends JSONValue>(
+    id: string,
+    v: MetaValue
+  ): Promise<void> {
+    this.meta.set(id, v);
+  }
+  async getMeta<MetaValue extends JSONValue>(id: string): Promise<MetaValue> {
+    return this.meta.get(id) || null;
   }
 
   async put(id: string, value: ValueType) {
