@@ -1,6 +1,8 @@
 import { secureRandomId } from "../crypto/random";
 import { JSONValue } from "../data/json";
 
+import fs from "node:fs";
+
 import {
   DEFAULT_PAGINATION_LIMIT,
   Doc,
@@ -288,6 +290,29 @@ export class LilDbStorageManagerSqliteInMemory implements LilDbStorageManager {
       const newDb = new LilDbSqlite<ValueType>(db, id);
       this.opened.set(name, newDb);
       return newDb;
+    }
+  }
+}
+
+export class LilDbStorageManagerSqliteDirectory implements LilDbStorageManager {
+  private dir: string;
+  constructor(dir: string) {
+    this.dir = dir;
+    fs.mkdirSync(this.dir, { recursive: true });
+  }
+
+  async open<ValueType extends JSONValue>(
+    name: string
+  ): Promise<LilDb<ValueType>> {
+    if (name.match(/^[a-zA-Z0-9\-]+$/)) {
+      const dbFile = `${this.dir}/${name}.db`;
+      console.log("trying to open: ", dbFile);
+      const db = new sqlite3.Database(dbFile);
+      const { id } = await loadDb(db);
+      const newDb = new LilDbSqlite<ValueType>(db, id);
+      return newDb;
+    } else {
+      throw new Error(`invalid database name`);
     }
   }
 }

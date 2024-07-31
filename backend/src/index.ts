@@ -1,6 +1,8 @@
 import express from "express";
 import helmet from "helmet";
 
+import "./auth";
+
 const PORT = 3001;
 
 const app = express();
