@@ -1,6 +1,7 @@
 no-args: deps run-local
 
 deps:
+	make -C common deps
 	make -C dashboard deps
 	make -C backend deps
 	make -C infra-local deps
