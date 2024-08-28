@@ -1,23 +1,32 @@
-import express from "express";
+import express, { Express } from "express";
 import helmet from "helmet";
+import bodyParser from "body-parser";
+import { setupAuthMiddleware } from "./auth";
 
-import "./auth";
+function setupHygenicHeaders(app: Express) {
+  // Use Helmet!
+  app.use(helmet());
+  app.use(function (req, res, next) {
+    res.setHeader("X-Robots-Tag", "noindex,nofollow");
+    next();
+  });
+}
 
-const PORT = 3001;
+async function main() {
+  const PORT = 3001;
+  const app = express();
+  app.use(bodyParser());
 
-const app = express();
+  setupHygenicHeaders(app);
+  await setupAuthMiddleware(app);
 
-// Use Helmet!
-app.use(helmet());
-app.use(function (req, res, next) {
-  res.setHeader("X-Robots-Tag", "noindex,nofollow");
-  next();
-});
+  app.get("/api/v1/", (req, res) => {
+    console.log("session:", req.user);
+    res.send("Hello !");
+  });
+  app.listen(PORT, () => {
+    console.log(`running on port: ${PORT}`);
+  });
+}
 
-app.get("/api/v1/", (req, res) => {
-  res.send("Hello !");
-});
-
-app.listen(PORT, () => {
-  console.log(`running on port: ${PORT}`);
-});
+main();

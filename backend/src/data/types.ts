@@ -3,3 +3,8 @@ export type DbUserProfile = {
   hashedpassword: string;
   salt: string;
 };
+
+export type DbAuthSecret = {
+  s: string;
+  createdAt: number;
+};

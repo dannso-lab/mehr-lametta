@@ -3,7 +3,7 @@ import { secureRandomId } from "../dannso/crypto/random";
 import { userProfilesDb } from "./dbprovider";
 import { DbUserProfile } from "./types";
 
-async function hashPassword(password: string, salt: string) {
+export async function hashUserPassword(password: string, salt: string) {
   return new Promise<Buffer>((resolve, reject) => {
     crypto.pbkdf2(
       password,
@@ -33,7 +33,9 @@ export async function findUserByName(
 export async function createUser(name: string, password: string) {
   const users = await userProfilesDb();
   const salt = await secureRandomId();
-  const hashedpassword = (await hashPassword(password, salt)).toString("hex");
+  const hashedpassword = (await hashUserPassword(password, salt)).toString(
+    "hex"
+  );
   await users.put(name, {
     hashedpassword,
     salt,

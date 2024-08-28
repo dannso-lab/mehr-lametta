@@ -7,6 +7,10 @@ import ReactDOM from "react-dom/client";
 import { HashRouter, Link, Route, Routes, useParams } from "react-router-dom";
 import { Grid, Menu } from "semantic-ui-react";
 
+fetch("/api/v1/", {
+  method: "GET",
+});
+
 function DashboardMenu() {
   return (
     <Menu fluid inverted vertical borderless compact>
@@ -61,11 +65,44 @@ function PageNotFound() {
   );
 }
 
+function Login() {
+  return (
+    <>
+      <h1>Sign in</h1>
+      <form action="/api/v1/login/password" method="post">
+        <section>
+          <label htmlFor="username">Username</label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            autoComplete="username"
+            required
+            autoFocus
+          />
+        </section>
+        <section>
+          <label htmlFor="current-password">Password</label>
+          <input
+            id="current-password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+          />
+        </section>
+        <button type="submit">Sign in</button>
+      </form>
+    </>
+  );
+}
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/" Component={Home} />
       <Route path="/sandbox" Component={Sandbox} />
+      <Route path="/login" Component={Login} />
       {/*<Route path="/services/kv" Component={KVDashboard} />*/}
       <Route path="/services/admin" element={<Admin />} />
       <Route path="/uploads/:hash" Component={Uploads} />
