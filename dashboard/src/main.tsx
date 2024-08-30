@@ -2,14 +2,12 @@
 import "semantic-ui-css/semantic.min.css";
 import "./index.css";
 // libs
-import React from "react";
+import React, { useContext, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter, Link, Route, Routes, useParams } from "react-router-dom";
 import { Grid, Menu } from "semantic-ui-react";
+import { UserStatusProvider, useUserName, useUserStatus } from "./hooks/userStatus";
 
-fetch("/api/v1/", {
-  method: "GET",
-});
 
 function DashboardMenu() {
   return (
@@ -35,7 +33,7 @@ function DashboardMenu() {
 function Home() {
   return (
     <>
-      <h1>hi this is the home page</h1>
+      <h1>hi {useUserName() || '...'}</h1>
     </>
   );
 }
@@ -123,6 +121,17 @@ function Admin() {
 }
 
 function App() {
+  const userStatus = useUserStatus();
+
+  if (userStatus.isLoading) {
+    return <div>...</div>
+  }
+
+  if (!userStatus.isLoggedIn) {
+    return <Login />
+  }
+
+
   return (
     <>
       <HashRouter>
@@ -143,8 +152,9 @@ function App() {
   );
 }
 
+
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
+  <UserStatusProvider>
     <App />
-  </React.StrictMode>
+  </UserStatusProvider>
 );

@@ -12,7 +12,7 @@ const SqliteStore = connectSqlite3(expressSession);
 async function ensureInitialUser() {
   const adminUser = await findUserByName("admin");
   if (!adminUser) {
-    const initialAdminPassword = secureRandomId();
+    const initialAdminPassword = process.env.FORCE_INITIAL_PASSWORD || secureRandomId();
     await createUser("admin", initialAdminPassword);
     console.log(`created initial admin user: admin // ${initialAdminPassword}`);
   } else {
@@ -93,4 +93,17 @@ export async function setupAuthMiddleware(app: Express) {
       failureRedirect: "/fail",
     })
   );
+
+  app.post('/api/v1/login/whoami', (req, res) => {
+    console.log('whoami request is here')
+    if (req.user) {
+      const user = req.user;
+      res.json({
+        name: user.name
+      })
+    } else {
+      console.log('say no')
+      res.sendStatus(404)
+    }
+  })
 }
