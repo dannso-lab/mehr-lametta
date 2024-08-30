@@ -95,14 +95,12 @@ export async function setupAuthMiddleware(app: Express) {
   );
 
   app.post('/api/v1/login/whoami', (req, res) => {
-    console.log('whoami request is here')
     if (req.user) {
       const user = req.user;
       res.json({
         name: user.name
       })
     } else {
-      console.log('say no')
       res.sendStatus(404)
     }
   })
