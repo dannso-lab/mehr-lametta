@@ -2,12 +2,15 @@
 import "semantic-ui-css/semantic.min.css";
 import "./index.css";
 // libs
-import React, { useContext, useEffect, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter, Link, Route, Routes, useParams } from "react-router-dom";
 import { Grid, Menu } from "semantic-ui-react";
-import { UserStatusProvider, useUserName, useUserStatus } from "./hooks/userStatus";
-
+import {
+  UserStatusProvider,
+  useUserName,
+  useUserStatus,
+} from "./hooks/userStatus";
+import { Pools } from "./pages/pools";
 
 function DashboardMenu() {
   return (
@@ -15,6 +18,9 @@ function DashboardMenu() {
       <Menu.Item>
         <Menu.Header>Services</Menu.Header>
         <Menu.Menu>
+          <Menu.Item as={Link} to="/services/pools">
+            Pools
+          </Menu.Item>
           <Menu.Item as={Link} to="/services/kv">
             KV
           </Menu.Item>
@@ -33,7 +39,7 @@ function DashboardMenu() {
 function Home() {
   return (
     <>
-      <h1>hi {useUserName() || '...'}</h1>
+      <h1>hi {useUserName() || "..."}</h1>
     </>
   );
 }
@@ -99,6 +105,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" Component={Home} />
+      <Route path="/services/pools" Component={Pools} />
       <Route path="/sandbox" Component={Sandbox} />
       <Route path="/login" Component={Login} />
       {/*<Route path="/services/kv" Component={KVDashboard} />*/}
@@ -124,13 +131,12 @@ function App() {
   const userStatus = useUserStatus();
 
   if (userStatus.isLoading) {
-    return <div>...</div>
+    return <div>...</div>;
   }
 
   if (!userStatus.isLoggedIn) {
-    return <Login />
+    return <Login />;
   }
-
 
   return (
     <>
@@ -151,7 +157,6 @@ function App() {
     </>
   );
 }
-
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <UserStatusProvider>

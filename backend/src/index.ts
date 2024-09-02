@@ -2,6 +2,7 @@ import express, { Express } from "express";
 import helmet from "helmet";
 import bodyParser from "body-parser";
 import { setupAuthMiddleware } from "./auth";
+import { setupPoolsRoutes } from "./routes/pools";
 
 function setupHygenicHeaders(app: Express) {
   // Use Helmet!
@@ -19,6 +20,7 @@ async function main() {
 
   setupHygenicHeaders(app);
   await setupAuthMiddleware(app);
+  setupPoolsRoutes(app);
 
   app.get("/api/v1/", (req, res) => {
     console.log("session:", req.user);
