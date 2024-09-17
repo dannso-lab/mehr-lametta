@@ -7,9 +7,8 @@ import {
   LilDbStorageManager,
   Query,
   QueryResult,
-  buildAssertionTester,
-  buildPathAccessor,
 } from "./common";
+import { buildAssertionTester, buildPathAccessor } from "./utils";
 
 // this implementation is not efficient. it's more here for convenience of testing and debugging
 // idea: implement real indices in here
@@ -36,7 +35,10 @@ export class LilDbMemory<ValueType> extends LilDb<ValueType> {
   ): Promise<void> {
     this.meta.set(id, v);
   }
-  async getMeta<MetaValue extends JSONValue>(id: string): Promise<MetaValue> {
+
+  async getMeta<MetaValue extends JSONValue>(
+    id: string
+  ): Promise<MetaValue | null> {
     return this.meta.get(id) || null;
   }
 

@@ -12,6 +12,7 @@ import {
   QueryResult,
 } from "./common";
 import sqlite3 from "sqlite3";
+import { stringq } from "../utils/predicates";
 
 function sqlrun(db: sqlite3.Database, sql: string, params: string[] = []) {
   return new Promise((resolve, reject) => {
@@ -164,13 +165,23 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
       const whereClauses = Object.entries(q.selector).flatMap(
         ([path, assertion]) => {
           const key = buildSqlPath(path);
-          if (typeof assertion === "string") {
-            return [[`${key} = ?`, assertion]];
+          if (stringq(assertion)) {
+            return [[`${key} = ?`, "" + assertion]];
           } else {
             return Object.entries(assertion).map(([operator, value]) => {
               const sqlOp = operatorMap[operator];
               if (sqlOp) {
                 return [`${key} ${sqlOp} ?`, value];
+              } else if (operator === "$starts") {
+                // TODO: for now we just rigorously restrict the types of values you can query for ...
+                // in theory we should do some better escaping here later and allow more values
+                // see: https://stackoverflow.com/questions/8247970/using-like-wildcard-in-prepared-statement
+                value = value.toString();
+                if (value.match(/^[a-zA-Z0-9]+$/)) {
+                  return [`${key} LIKE ?`, `${value}%`];
+                } else {
+                  throw new Error("unsupported value for startsWith query");
+                }
               } else {
                 throw new Error(`invalid comparator in query`);
               }
@@ -186,7 +197,7 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
           .map((clause) => clause[0])
           .join(` AND `)}`;
         whereClauses.forEach(([_, value]) => {
-          if (typeof value === "string" || typeof value === "number") {
+          if (stringq(value) || typeof value === "number") {
             params.push(value);
           } else {
             throw new Error(`queried value neither string or number`);

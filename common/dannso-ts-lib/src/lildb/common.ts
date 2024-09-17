@@ -13,7 +13,6 @@ Purpose: provide simple but not bare bones document store abstraction
 */
 
 import { JSONValue } from "../data/json";
-import { unimpl } from "../utils/unimpl";
 
 export const DEFAULT_PAGINATION_LIMIT = 100;
 
@@ -25,8 +24,8 @@ export interface Doc<ValueType> {
   isTombstoned: boolean;
 }
 
-type AssertableValue = string | number | undefined;
-type ValueAssertion =
+export type AssertableValue = string | number | undefined;
+export type ValueAssertion =
   | string
   | {
       $eq?: AssertableValue;
@@ -34,6 +33,7 @@ type ValueAssertion =
       $gte?: AssertableValue;
       $lt?: AssertableValue;
       $lte?: AssertableValue;
+      $starts?: AssertableValue;
     };
 
 interface QueryFilter {
@@ -85,76 +85,4 @@ export abstract class LilDb<ValueType> {
 
 export interface LilDbStorageManager {
   open<ValueType extends JSONValue>(name: string): Promise<LilDb<ValueType>>;
-}
-
-// valid selectors:
-// id: $id
-// transaction counter: $tx
-// key in doc.value: foo
-// nested keys: foo.bar
-export function buildPathAccessor<ValueType>(
-  sel: string
-): (doc: Doc<ValueType>) => AssertableValue {
-  if (sel === "$id") {
-    return ({ id }) => id;
-  } else if (sel === "$tx") {
-    return ({ tx }) => tx;
-  } else if (sel === "$rev") {
-    return ({ revision }) => revision;
-  }
-
-  let a: (v: any) => AssertableValue = (v: any) => v.value;
-
-  const path = sel.split(".");
-  while (path.length > 0) {
-    const fnGet = ((pathPart) => {
-      return (v: any) => {
-        return v ? v[pathPart] : undefined;
-      };
-    })(path.shift()!);
-
-    if (a) {
-      a = ((prevA: any) => {
-        return (v: any) => fnGet(prevA(v));
-      })(a);
-    } else {
-      a = fnGet;
-    }
-  }
-
-  return a;
-}
-
-export function buildAssertionTester(
-  a: ValueAssertion
-): (v: AssertableValue) => boolean {
-  if (typeof a === "string") {
-    return (v) => v === a;
-  } else {
-    let fn: (v: AssertableValue) => boolean = () => true;
-    for (let [k, checkV] of Object.entries(a)) {
-      ((prevFn: (v: AssertableValue) => boolean) => {
-        switch (k) {
-          case "$eq":
-            fn = (v) => prevFn(v) && v === checkV;
-            break;
-          case "$gt":
-            fn = (v) => prevFn(v) && v! > checkV;
-            break;
-          case "$gte":
-            fn = (v) => prevFn(v) && v! >= checkV;
-            break;
-          case "$lt":
-            fn = (v) => prevFn(v) && v! < checkV;
-            break;
-          case "$lte":
-            fn = (v) => prevFn(v) && v! <= checkV;
-            break;
-          default:
-            throw unimpl();
-        }
-      })(fn);
-    }
-    return fn;
-  }
 }

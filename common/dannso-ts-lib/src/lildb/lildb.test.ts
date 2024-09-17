@@ -4,7 +4,6 @@ import { LilDb, LilDbStorageManager } from "./common";
 
 import { LilDbStorageManagerMemory } from "./memory";
 import { LilDbStorageManagerSqliteInMemory } from "./sqlite";
-import { visitFunctionBody } from "typescript";
 
 type Animal = {
   animal: string;
@@ -255,6 +254,34 @@ function testForStorageManager(
         await db.query({ selector: { num: { $gt: 2, $lt: 5 } }, sort: ["num"] })
       ).values.map((doc) => doc.value.animal)
     ).toStrictEqual(["Jaguar", "Flamingo"]);
+  });
+
+  test("starts with accessor works", async () => {
+    // GIVEN
+    const db = await storageManager.open<Animal>("startsWith");
+    await db.put("ab", {
+      animal: "AbSoweli",
+      num: 0,
+    });
+    await db.put("abc", {
+      animal: "AbcSoweli",
+      num: 1,
+    });
+    await db.put("abcdef", {
+      animal: "AbcdefSoweli",
+      num: 2,
+    });
+    await db.put("zyx", {
+      animal: "XyzSoweli",
+      num: 3,
+    });
+
+    // WHEN, THEN
+    expect(
+      (
+        await db.query({ selector: { $id: { $starts: "abc" } }, sort: ["num"] })
+      ).values.map((doc) => doc.id)
+    ).toStrictEqual(["abc", "abcdef"]);
   });
 
   test("basic paging works", async () => {

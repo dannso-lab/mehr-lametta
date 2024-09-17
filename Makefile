@@ -10,3 +10,7 @@ deps:
 run-local:
 	make -C infra-local run-local
 .PHONY: run-local
+
+test:
+	make -C dashboard test
+.PHONY: test

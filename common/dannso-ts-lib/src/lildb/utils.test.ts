@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { Doc, buildAssertionTester, buildPathAccessor } from "./common";
+import { Doc } from "./common";
+import { buildAssertionTester, buildPathAccessor } from "./utils";
 
 test("path accessor", () => {
   const doc: Doc = {
