@@ -108,14 +108,10 @@ export class LilDbMemory<ValueType> extends LilDb<ValueType> {
       for (let sortKey of sortBy) {
         const aValue = sortKey(a)!;
         const bValue = sortKey(b)!;
-        if (aValue === bValue) {
-          continue;
-        } else {
-          if (aValue < bValue) {
-            return smallerOutcome;
-          } else {
-            return smallerOutcome * -1;
-          }
+        if (aValue < bValue) {
+          return smallerOutcome;
+        } else if (aValue > bValue) {
+          return smallerOutcome * -1;
         }
       }
       return 0;
