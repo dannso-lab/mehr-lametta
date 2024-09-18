@@ -15,15 +15,17 @@ suite("subkeyed lildb", () => {
     // WHEN
     dbA.put("sameKey", { foo: "from a" });
     dbB.put("sameKey", { foo: "from b" });
-    const resA = await dbA.findOne({ $id: "sameKey" });
-    const resB = await dbB.findOne({ $id: "sameKey" });
+    const resA = await dbA.query({ selector: { $id: "sameKey" } });
+    const resB = await dbB.query({ selector: { $id: "sameKey" } });
 
     // THEN
-    expect(resA!.value).toStrictEqual({ foo: "from a" });
-    expect(resA!.id).toBe("sameKey");
+    expect(resA.values.length).toBe(1);
+    expect(resA.values[0].value).toStrictEqual({ foo: "from a" });
+    expect(resA.values[0].id).toBe("sameKey");
 
-    expect(resB!.value).toStrictEqual({ foo: "from b" });
-    expect(resB!.id).toBe("sameKey");
+    expect(resB.values.length).toBe(1);
+    expect(resB.values[0].value).toStrictEqual({ foo: "from b" });
+    expect(resB.values[0].id).toBe("sameKey");
   });
 
   test("non interference with compound id selector that already contains $start", async () => {
