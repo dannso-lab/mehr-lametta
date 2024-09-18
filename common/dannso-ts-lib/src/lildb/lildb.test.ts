@@ -2,8 +2,10 @@ import { expect, test, suite, expectTypeOf } from "vitest";
 
 import { LilDb, LilDbStorageManager } from "./common";
 
-import { LilDbStorageManagerMemory } from "./memory";
+import { LilDbMemory, LilDbStorageManagerMemory } from "./memory";
 import { LilDbStorageManagerSqliteInMemory } from "./sqlite";
+import { JSONValue } from "../data/json";
+import { SubLilDb } from "./sublildb";
 
 type Animal = {
   animal: string;
@@ -413,4 +415,22 @@ testForStorageManager("lildb in-memory", new LilDbStorageManagerMemory());
 testForStorageManager(
   "sqlite in-memory",
   new LilDbStorageManagerSqliteInMemory()
+);
+
+// This test basically says:
+// GIVEN: If you have a subkeyed lildb... and there's only ever one key used
+// THEN: it should behave like a normal db
+// ... this is a sanity check
+// the only difference between subkeyed single instance lildb and one with many is the transaction counts
+class LilDbSingleInstanceStorageManager implements LilDbStorageManager {
+  async open<ValueType extends JSONValue>(
+    name: string
+  ): Promise<LilDb<ValueType>> {
+    const rootDb = new LilDbMemory<ValueType>();
+    return new SubLilDb(rootDb, "mySubKey");
+  }
+}
+testForStorageManager(
+  "subkeyed lildb single instance",
+  new LilDbSingleInstanceStorageManager()
 );

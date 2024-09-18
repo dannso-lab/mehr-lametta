@@ -25,16 +25,16 @@ export interface Doc<ValueType> {
 }
 
 export type AssertableValue = string | number | undefined;
-export type ValueAssertion =
-  | string
-  | {
-      $eq?: AssertableValue;
-      $gt?: AssertableValue;
-      $gte?: AssertableValue;
-      $lt?: AssertableValue;
-      $lte?: AssertableValue;
-      $starts?: AssertableValue;
-    };
+export type ValueAssertionString = string;
+export type ValueAssertionCompound = {
+  $eq?: AssertableValue;
+  $gt?: AssertableValue;
+  $gte?: AssertableValue;
+  $lt?: AssertableValue;
+  $lte?: AssertableValue;
+  $starts?: AssertableValue;
+};
+export type ValueAssertion = ValueAssertionString | ValueAssertionCompound;
 
 interface QueryFilter {
   [field: string]: ValueAssertion;

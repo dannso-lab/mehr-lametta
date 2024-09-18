@@ -51,6 +51,8 @@ test("value assertions", () => {
   // strings
   expect(buildAssertionTester({ $lt: "zebra" })("axolotl")).toBe(true);
   expect(buildAssertionTester({ $gt: "axolotl" })("zebra")).toBe(true);
+  expect(buildAssertionTester({ $starts: "axo" })("axolotl")).toBe(true);
+  expect(buildAssertionTester({ $starts: "axoX" })("axolotl")).toBe(false);
 
   // compound expressions
   const between50_100 = buildAssertionTester({ $gte: 50, $lte: 100 });

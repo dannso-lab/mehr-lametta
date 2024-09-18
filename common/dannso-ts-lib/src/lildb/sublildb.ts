@@ -1,5 +1,6 @@
 import { JSONValue } from "../data/json";
-import { LilDb, Query, QueryResult } from "./common";
+import { stringq } from "../utils/predicates";
+import { LilDb, Query, QueryResult, ValueAssertionCompound } from "./common";
 
 // dragons here
 
@@ -35,9 +36,37 @@ export class SubLilDb<ValueType> extends LilDb<ValueType> {
     return this.baseDb.delete(`${this.subKey}_${id}`);
   }
 
-  query(q: Query): Promise<QueryResult<ValueType>> {
-    // TODO
-    return this.baseDb.query(q);
+  async query(q: Query): Promise<QueryResult<ValueType>> {
+    // modify selector to play in our sub key
+    const selector = { ...q.selector };
+    if (!selector.$id) {
+      selector.$id = { $starts: `${this.subKey}_` };
+    } else {
+      if (stringq(selector.$id)) {
+        selector.$id = `${this.subKey}_${selector.$id}`;
+      } else {
+        // update existing value assertions
+        const $id = { ...(selector.$id as ValueAssertionCompound) };
+        Object.keys($id).forEach((k) => {
+          $id[k as keyof ValueAssertionCompound] = `${this.subKey}_${
+            $id[k as keyof ValueAssertionCompound]
+          }`;
+        });
+
+        // update $id query in selector
+        selector.$id = $id;
+      }
+    }
+
+    const res = await this.baseDb.query({ ...q, selector });
+
+    // remove subkey from result
+    res.values = res.values.map((value) => ({
+      ...value,
+      id: value.id.substring(this.subKey.length + 1),
+    }));
+
+    return res;
   }
 
   async currentTx(): Promise<number> {
