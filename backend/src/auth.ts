@@ -3,74 +3,78 @@ import passportLocal from "passport-local";
 import crypto from "node:crypto";
 import { createUser, findUserByName, hashUserPassword } from "./data/userprofile";
 import { secureRandomId } from "./dannso/crypto/random";
-import { Express } from "express";
 import connectSqlite3 from "connect-sqlite3";
 import expressSession from "express-session";
-import { authSecrets } from "./data/dbprovider";
-const SqliteStore = connectSqlite3(expressSession);
+import { Context } from "./context";
 
-async function ensureInitialUser() {
-  const adminUser = await findUserByName("admin");
+async function ensureInitialUser(context: Context) {
+  const adminUser = await findUserByName(context, "admin");
   if (!adminUser) {
     const initialAdminPassword = process.env.FORCE_INITIAL_PASSWORD || secureRandomId();
-    await createUser("admin", initialAdminPassword);
+    await createUser(context, "admin", initialAdminPassword);
     console.log(`created initial admin user: admin // ${initialAdminPassword}`);
   } else {
-    console.log("admin exists. no need to create it");
+    console.log("admin exists no need to create it");
   }
 }
 
 const INCORRECT_LOGIN_MSG = "Incorrect user name or password";
 
-// INIT PASSPORT GLOBALLY
-passport.use(
-  new passportLocal.Strategy(async function verify(username, password, cb) {
-    const user = await findUserByName(username);
-    if (!user) {
-      return cb(null, false, { message: INCORRECT_LOGIN_MSG });
-    }
-
-    const hashedpasswordReference = Buffer.from(user.hashedpassword, "hex");
-    const hashedpasswordAttempt = await hashUserPassword(password, user.salt);
-    if (!crypto.timingSafeEqual(hashedpasswordReference, hashedpasswordAttempt)) {
-      return cb(null, false, { message: INCORRECT_LOGIN_MSG });
-    }
-
-    const returnedUser = { ...user };
-    delete returnedUser["hashedpassword"];
-    delete returnedUser["salt"];
-    cb(null, returnedUser);
-  })
-);
-passport.serializeUser(function (user: any, cb) {
-  process.nextTick(function () {
-    cb(null, { name: user.name });
-  });
-});
-
-passport.deserializeUser(function (user: any, cb) {
-  process.nextTick(function () {
-    return cb(null, user);
-  });
-});
-
-export async function setupAuthMiddleware(app: Express) {
-  // make sure we have an admin account
-  await ensureInitialUser();
+export async function setupAuthMiddleware(context: Context) {
+  const { app, dbAuthSecrets } = context;
 
   // find secrets for the session middleware
-  const secretsDb = await authSecrets();
-  const secrets = (await secretsDb.query({ selector: {}, sort: ["createdAt"] })).values;
+  const secrets = (await dbAuthSecrets.query({ selector: {}, sort: ["createdAt"] })).values;
   if (secrets.length === 0) {
     console.log(`Creating auth secret`);
-    await secretsDb.put(secureRandomId(), {
+    await dbAuthSecrets.put(secureRandomId(), {
       createdAt: Date.now(),
       s: secureRandomId(),
     });
-    return setupAuthMiddleware(app);
+    // TODO: avoid this function calling itself... its just confusing when code changes
+    return setupAuthMiddleware(context);
   }
 
+  // INIT PASSPORT GLOBALLY
+  // TODO: we should investigate a way to not use a global passport instance, for now ok
+  // -- danger start --
+  passport.use(
+    new passportLocal.Strategy(async function verify(username, password, cb) {
+      const user = await findUserByName(context, username);
+      if (!user) {
+        return cb(null, false, { message: INCORRECT_LOGIN_MSG });
+      }
+
+      const hashedpasswordReference = Buffer.from(user.hashedpassword, "hex");
+      const hashedpasswordAttempt = await hashUserPassword(password, user.salt);
+      if (!crypto.timingSafeEqual(hashedpasswordReference, hashedpasswordAttempt)) {
+        return cb(null, false, { message: INCORRECT_LOGIN_MSG });
+      }
+
+      const returnedUser = { ...user };
+      delete returnedUser["hashedpassword"];
+      delete returnedUser["salt"];
+      cb(null, returnedUser);
+    }),
+  );
+  passport.serializeUser(function (user: any, cb) {
+    process.nextTick(function () {
+      cb(null, { name: user.name });
+    });
+  });
+
+  passport.deserializeUser(function (user: any, cb) {
+    process.nextTick(function () {
+      return cb(null, user);
+    });
+  });
+  // -- DANGER END --
+
+  // make sure we have an admin account
+  await ensureInitialUser(context);
+
   // apply session middleware
+  const SqliteStore = connectSqlite3(expressSession);
   app.use(
     expressSession({
       // TODO: secret is an array... first one is used to create new sessions...old ones can still be validated
@@ -78,8 +82,12 @@ export async function setupAuthMiddleware(app: Express) {
       secret: secrets.map((doc) => doc.value.s),
       resave: false,
       saveUninitialized: false,
-      store: new SqliteStore({ db: "sessions.db", dir: "./data" }),
-    })
+      ...(context.serverOptions.ephemeral
+        ? {}
+        : {
+            store: new SqliteStore({ db: "sessions.db", dir: context.serverOptions.dataRoot }),
+          }),
+    }),
   );
 
   // passport.js middleware to populate the req.user field
@@ -91,17 +99,17 @@ export async function setupAuthMiddleware(app: Express) {
     passport.authenticate("local", {
       successRedirect: "/ok",
       failureRedirect: "/fail",
-    })
+    }),
   );
 
-  app.post('/api/v1/login/whoami', (req, res) => {
+  app.post("/api/v1/login/whoami", (req, res) => {
     if (req.user) {
       const user = req.user;
       res.json({
-        name: user.name
-      })
+        name: user.name,
+      });
     } else {
-      res.sendStatus(404)
+      res.sendStatus(404);
     }
-  })
+  });
 }

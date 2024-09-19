@@ -1,34 +1,11 @@
-import express, { Express } from "express";
-import helmet from "helmet";
-import bodyParser from "body-parser";
-import { setupAuthMiddleware } from "./auth";
-import { setupPoolsRoutes } from "./routes/pools";
+import { createServer, defaultServerOptions } from "./server";
+import { envBool, envInt, envStr } from "./utils/env";
 
-function setupHygenicHeaders(app: Express) {
-  // Use Helmet!
-  app.use(helmet());
-  app.use(function (req, res, next) {
-    res.setHeader("X-Robots-Tag", "noindex,nofollow");
-    next();
-  });
-}
+const options = defaultServerOptions();
 
-async function main() {
-  const PORT = 3001;
-  const app = express();
-  app.use(bodyParser());
+const envPrefix = "MEHR_LAMETTA_";
+options.port = envInt(`${envPrefix}PORT`, options.port);
+options.dataRoot = envStr(`${envPrefix}DATA_ROOT`, options.dataRoot);
+options.ephemeral = envBool(`${envPrefix}EPHEMERAL`, options.ephemeral);
 
-  setupHygenicHeaders(app);
-  await setupAuthMiddleware(app);
-  setupPoolsRoutes(app);
-
-  app.get("/api/v1/", (req, res) => {
-    console.log("session:", req.user);
-    res.send("Hello !");
-  });
-  app.listen(PORT, () => {
-    console.log(`running on port: ${PORT}`);
-  });
-}
-
-main();
+createServer(options);

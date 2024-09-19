@@ -1,16 +1,14 @@
+import { Context } from "../context";
 import { secureRandomId } from "../dannso/crypto/random";
-import { poolsDb } from "./dbprovider";
 
-export async function listPools() {
-  const db = await poolsDb();
-  const allPools = await db.query({ selector: {} });
+export async function listPools(context: Context) {
+  const allPools = await context.dbPools.query({ selector: {} });
   return allPools.values;
 }
 
-export async function createPool(label: string) {
-  const db = await poolsDb();
+export async function createPool(context: Context, label: string) {
   const id = secureRandomId();
-  await db.put(id, {
+  await context.dbPools.put(id, {
     createdAt: Date.now(),
     label,
   });
