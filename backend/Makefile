@@ -8,3 +8,7 @@ run-local: src/dannso
 
 src/dannso:
 	ln -s $(abspath ../common/dannso-ts-lib/src) src/dannso
+
+test:
+	yarn test
+.PHONY: test

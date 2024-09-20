@@ -10,11 +10,11 @@ import { Context } from "./context";
 async function ensureInitialUser(context: Context) {
   const adminUser = await findUserByName(context, "admin");
   if (!adminUser) {
-    const initialAdminPassword = process.env.FORCE_INITIAL_PASSWORD || secureRandomId();
+    const initialAdminPassword = context.serverOptions.initialAdminPassword || secureRandomId();
     await createUser(context, "admin", initialAdminPassword);
-    console.log(`created initial admin user: admin // ${initialAdminPassword}`);
+    //console.log(`created initial admin user: admin // ${initialAdminPassword}`);
   } else {
-    console.log("admin exists no need to create it");
+    //console.log("admin exists no need to create it");
   }
 }
 
@@ -26,7 +26,7 @@ export async function setupAuthMiddleware(context: Context) {
   // find secrets for the session middleware
   const secrets = (await dbAuthSecrets.query({ selector: {}, sort: ["createdAt"] })).values;
   if (secrets.length === 0) {
-    console.log(`Creating auth secret`);
+    //console.log(`Creating auth secret`);
     await dbAuthSecrets.put(secureRandomId(), {
       createdAt: Date.now(),
       s: secureRandomId(),

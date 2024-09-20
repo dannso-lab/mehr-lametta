@@ -6,6 +6,8 @@ export interface ServerOptions {
   port: number; // tcp port for api
   dataRoot: string; // should be a folder where we can write our data in
   ephemeral: boolean; // when true: data is held in memory ... used by integration tests
+
+  initialAdminPassword?: string; // if no admin is on the server, set it to this pssword ... used for the integration tests
 }
 
 export interface Context {

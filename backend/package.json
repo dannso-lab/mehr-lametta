@@ -18,9 +18,13 @@
     "typescript": "^5.4.5"
   },
   "scripts": {
-    "dev": "nodemon --watch \"src/**\" --ext \"ts,js,json\" --exec \"ts-node ./src/index.ts\""
+    "dev": "nodemon --watch \"src/**\" --ext \"ts,js,json\" --exec \"ts-node ./src/index.ts\"",
+    "test": "vitest run"
   },
   "prettier": {
     "printWidth": 120
+  },
+  "devDependencies": {
+    "vitest": "^2.1.1"
   }
 }

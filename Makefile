@@ -12,5 +12,6 @@ run-local:
 .PHONY: run-local
 
 test:
+	make -C backend test
 	make -C dashboard test
 .PHONY: test

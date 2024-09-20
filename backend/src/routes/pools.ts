@@ -1,7 +1,7 @@
 import { listPools } from "../data/pools";
 import { Context } from "../context";
 
-export function setupPoolsRoutes(context: Context) {
+export async function setupPoolsRoutes(context: Context) {
   const { app } = context;
 
   app.get("/api/v1/pools", async (req, res) => {
