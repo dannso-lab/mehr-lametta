@@ -6,8 +6,8 @@ test("can start a responding test server", async () => {
   const server = await testServerInstance();
 
   // WHEN
-  const result = await fetch(`${server.url}/`);
+  const result = await server.fetch(`/`);
 
   // THEN
-  expect(result.status).toBe(404);
+  expect(result.status).toBe(200);
 });

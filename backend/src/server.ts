@@ -46,6 +46,10 @@ export async function createServer(options: ServerOptions) {
   await setupAuthMiddleware(context);
   await setupPoolsRoutes(context);
 
+  context.app.get('/', (rq, res) => {
+    res.sendStatus(200)
+  })
+
   return new Promise<void>((onServerStarted) => {
     context.app.listen(options.port, () => {
       console.log(`server running on port: ${options.port}`);

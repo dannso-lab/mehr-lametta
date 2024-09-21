@@ -8,7 +8,7 @@ suite("pools", () => {
       const server = await testServerInstance();
 
       // WHEN
-      const result = await fetch(`${server.url}/api/v1/pools`);
+      const result = await server.fetch(`/api/v1/pools`);
 
       // THEN
       expect(result.status).toBe(401);
