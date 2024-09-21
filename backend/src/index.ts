@@ -1,4 +1,4 @@
-import { createServer, defaultServerOptions } from "./server";
+import { createApplicationServer, defaultServerOptions } from "./server";
 import { envBool, envInt, envStr } from "./utils/env";
 
 const options = defaultServerOptions();
@@ -9,4 +9,4 @@ options.dataRoot = envStr(`${envPrefix}DATA_ROOT`, options.dataRoot);
 options.ephemeral = envBool(`${envPrefix}EPHEMERAL`, options.ephemeral);
 options.initialAdminPassword = envStr(`${envPrefix}FORCE_INITIAL_ADMIN_PASSWORD`, undefined);
 
-createServer(options);
+createApplicationServer(options);

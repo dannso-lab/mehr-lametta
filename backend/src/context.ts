@@ -1,3 +1,4 @@
+import { Server } from 'node:http';
 import { Express } from "express";
 import { LilDb } from "./dannso/lildb/common";
 import { DbAuthSecret, DbPoolSpec, DbUserProfile } from "./data/types";
@@ -17,5 +18,6 @@ export interface Context {
   dbAuthSecrets: LilDb<DbAuthSecret>;
   dbPools: LilDb<DbPoolSpec>;
 
+  httpServer: Server
   app: Express;
 }

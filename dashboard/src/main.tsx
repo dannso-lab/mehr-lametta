@@ -11,6 +11,7 @@ import {
   useUserStatus,
 } from "./hooks/userStatus";
 import { Pools } from "./pages/pools";
+import { RelayPage } from "./pages/relay";
 
 function DashboardMenu() {
   return (
@@ -111,6 +112,7 @@ function AppRoutes() {
       {/*<Route path="/services/kv" Component={KVDashboard} />*/}
       <Route path="/services/admin" element={<Admin />} />
       <Route path="/uploads/:hash" Component={Uploads} />
+      <Route path="/relay" Component={RelayPage} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

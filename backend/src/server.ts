@@ -5,6 +5,8 @@ import { setupAuthMiddleware } from "./auth";
 import { setupPoolsRoutes } from "./routes/pools";
 import { Context, ServerOptions } from "./context";
 import { LilDbStorageManagerSqliteDirectory, LilDbStorageManagerSqliteInMemory } from "./dannso/lildb/sqlite";
+import { createServer } from "node:http";
+import { setupRelayService } from "./routes/relay";
 
 async function setupHygenicHeaders(app: Express) {
   // Use Helmet!
@@ -33,25 +35,29 @@ async function openDatabases(context: Context) {
   context.dbPools = await dbProvider.open("pools");
 }
 
-export async function createServer(options: ServerOptions) {
+export async function createApplicationServer(options: ServerOptions) {
   const context: Context = {} as any as Context; // services will fill up the context structure as they start up
 
   context.serverOptions = options;
   await openDatabases(context);
 
   context.app = express();
+  const server = createServer(context.app);
+  context.httpServer = server;
+
   context.app.use(bodyParser());
 
   await setupHygenicHeaders(context.app);
   await setupAuthMiddleware(context);
+  await setupRelayService(context);
   await setupPoolsRoutes(context);
 
-  context.app.get('/', (rq, res) => {
-    res.sendStatus(200)
-  })
+  context.app.get("/", (rq, res) => {
+    res.sendStatus(200);
+  });
 
   return new Promise<void>((onServerStarted) => {
-    context.app.listen(options.port, () => {
+    server.listen(options.port, () => {
       console.log(`server running on port: ${options.port}`);
       onServerStarted();
     });
