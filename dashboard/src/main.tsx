@@ -12,6 +12,7 @@ import {
 } from "./hooks/userStatus";
 import { Pools } from "./pages/pools";
 import { RelayPage } from "./pages/relay";
+import { Sandbox } from "./pages/sandbox";
 
 function DashboardMenu() {
   return (
@@ -45,13 +46,6 @@ function Home() {
   );
 }
 
-function Sandbox() {
-  return (
-    <>
-      <h1>hi this the sandbox</h1>
-    </>
-  );
-}
 
 function Uploads() {
   const { hash } = useParams();
