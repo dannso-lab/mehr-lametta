@@ -3,6 +3,20 @@ import { RJSFSchema } from "@rjsf/utils";
 import validator from "@rjsf/validator-ajv8";
 import { Theme as SemanticUITheme } from "@rjsf/semantic-ui";
 import { unimpl } from "../dannso/utils/unimpl";
+import {
+  Input,
+  Comment,
+  CommentContent,
+  CommentText,
+  CommentAuthor,
+  CommentGroup,
+  Icon,
+  MessageContent,
+  MessageHeader,
+  Message,
+} from "semantic-ui-react";
+import { memo, useCallback, useState } from "react";
+import Markdown from "react-markdown";
 
 // Make modifications to the theme with your own fields and widgets
 
@@ -24,6 +38,13 @@ const schema: RJSFSchema = {
 export interface ChatMessage {
   role: string; // system, user, assistant, tool...
   content: string;
+  tool_calls?: {
+    id: string;
+    function: {
+      name: string;
+      arguments: any;
+    };
+  }[];
 }
 
 export interface ChatTool {
@@ -109,11 +130,12 @@ export function openAiCompatibleChat(opts: { url: string }) {
               });
           } else if (finish_reason === "tool_calls") {
             const tool_calls = json.choices[0].message.tool_calls;
+
             receiver.onFinished &&
               receiver.onFinished({
                 finishReason: finish_reason,
                 toolCalls: tool_calls,
-                messages: request.messages,
+                messages: [...request.messages, json.choices[0].message],
               });
           } else {
             throw unimpl();
@@ -210,7 +232,10 @@ const idleTool: CallableTool = {
     },
   },
   async fn(args: any) {
-    return JSON.stringify({ name: "idle" });
+    return JSON.stringify({
+      status:
+        "ready to answer - dont mention that you used or didnt use a tool",
+    });
   },
 };
 
@@ -272,39 +297,123 @@ export function chatWithTools(chatFnOriginal: ChatFn, tools: CallableTool[]) {
 
 const aschat = chatWithTools(ol.chat, [weatherTool, idleTool]);
 
-aschat(
-  {
-    //model: "smollm:360m",
-    //model: "smollm:135m",
-    model: "llama3.1",
+const toolNamesToIgnore = ["idle"];
 
-    messages: [
-      {
-        role: "system",
-        content: `
+const LLMTextDisplay = memo(function LLMTextDisplay({
+  text,
+}: {
+  text: string;
+}) {
+  return (
+    <>
+      <Markdown>{text}</Markdown>
+    </>
+  );
+});
+
+function ChatBox() {
+  const [prompt, setPrompt] = useState<string>("");
+  const [isRunning, setIsRunning] = useState<boolean>(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  const onSubmit = useCallback(() => {
+    if (!isRunning) {
+      const newMessages = [...messages];
+      if (newMessages.length === 0) {
+        newMessages.push({
+          role: "system",
+          content: `
           You are a helpful assistant.
+          If you use tools, don't mention them to the user. Just ask based on their output.
           Today is: ${new Date()}
         `,
-      },
-      {
+        });
+      }
+      newMessages.push({
         role: "user",
-        //content: "Whats the weather in Berlin like?",
-        content: "What are oblique strategies in one sentence?",
-      },
-    ],
-  },
-  {
-    onFinished(res) {
-      console.log(`Final Res: \n${JSON.stringify(res, null, 2)}`);
-    },
-  }
-);
+        content: prompt,
+      });
+      setPrompt("");
+      setIsRunning(true);
+      aschat(
+        {
+          model: "llama3.1",
+          messages: newMessages,
+        },
+        {
+          onFinished(result) {
+            setMessages(result.messages);
+            setIsRunning(false);
+          },
+        }
+      );
+    }
+  }, [isRunning, messages, prompt]);
+
+  return (
+    <>
+      <CommentGroup>
+        {messages.map((m, index, array) => {
+          if (m.role === "system") {
+            return <div key={index}></div>;
+          }
+          if (m.role === "tool") {
+            return <div key={index}></div>;
+          }
+          if (m.role === "assistant" && m.tool_calls) {
+            return m.tool_calls.map((tc, tcIndex) => {
+              if (toolNamesToIgnore.includes(tc.function.name)) {
+                return <div key={tcIndex}></div>;
+              }
+              const toolResults = array[index + 1];
+              return (
+                <Message icon key={tcIndex}>
+                  {!toolResults && <Icon name="circle notched" loading />}
+                  <MessageContent>
+                    <MessageHeader>{tc.function.name}</MessageHeader>
+                  </MessageContent>
+                </Message>
+              );
+            });
+          }
+          return (
+            <Comment key={index}>
+              <CommentContent>
+                <CommentAuthor>{m.role}</CommentAuthor>
+                <CommentText>
+                  <LLMTextDisplay text={m.content}></LLMTextDisplay>
+                </CommentText>
+              </CommentContent>
+            </Comment>
+          );
+        })}
+      </CommentGroup>
+      <Input
+        disabled={isRunning}
+        value={prompt}
+        onChange={(ev) => setPrompt(ev.target.value)}
+        onKeyDown={(ev: KeyboardEvent) => {
+          if (ev.key === "Enter") {
+            onSubmit();
+          }
+        }}
+        action={{
+          content: "send",
+          onClick: () => {
+            onSubmit();
+          },
+        }}
+      ></Input>
+    </>
+  );
+}
 
 export function Sandbox() {
   return (
     <>
       <h1>hi this the sandbox</h1>
       {false && <Form schema={schema} validator={validator} />}
+      <ChatBox />
     </>
   );
 }
