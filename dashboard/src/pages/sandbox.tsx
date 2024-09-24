@@ -12,8 +12,10 @@ import {
   CommentGroup,
   Icon,
   MessageContent,
-  MessageHeader,
   Message,
+  Accordion,
+  AccordionTitle,
+  AccordionContent,
 } from "semantic-ui-react";
 import { memo, useCallback, useState } from "react";
 import Markdown from "react-markdown";
@@ -108,6 +110,7 @@ export interface ChatFinishedResult {
 }
 
 export interface ChatReceiver {
+  onUpdateMessages?: (messages: ChatMessage[]) => void;
   onChunk?: (chunk: string, messages: ChatMessage[]) => void;
   onFinished?: (result: ChatFinishedResult) => void;
 }
@@ -331,6 +334,8 @@ export function chatWithTools(chatFnOriginal: ChatFn, tools: CallableTool[]) {
       async onFinished(result: ChatFinishedResult) {
         if (result.finishReason === "tool_calls") {
           const messagesAfterTools = [...result.messages];
+          receiver.onUpdateMessages &&
+            receiver.onUpdateMessages(messagesAfterTools);
           //console.log("DETECTED TOOLS CALL!", JSON.stringify(result, null, 2));
           for (let toolCallRequest of result.toolCalls!) {
             const tool = tools.find(
@@ -362,6 +367,8 @@ export function chatWithTools(chatFnOriginal: ChatFn, tools: CallableTool[]) {
                 }),
               });
             }
+            receiver.onUpdateMessages &&
+              receiver.onUpdateMessages(messagesAfterTools);
           }
           chat({ ...request, messages: messagesAfterTools }, receiver);
         } else {
@@ -387,6 +394,39 @@ const LLMTextDisplay = memo(function LLMTextDisplay({
     </>
   );
 });
+
+function ToolInfo({ name, res, args }: { name: string; res: any; args: any }) {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  if (res) {
+    res = res.content;
+    try {
+      res = JSON.parse(res);
+    } catch (e) {}
+  }
+  return (
+    <Message icon>
+      {!res && <Icon name="circle notched" loading />}
+      <MessageContent>
+        <Accordion>
+          <AccordionTitle active={isOpen} onClick={() => setIsOpen(!isOpen)}>
+            <Icon name="dropdown" />
+            {name}
+          </AccordionTitle>
+          <AccordionContent active={isOpen}>
+            parameters:
+            <pre>{JSON.stringify(args, null, 2)}</pre>
+            {!!res && (
+              <>
+                result:
+                <pre>{JSON.stringify(res, null, 2)}</pre>
+              </>
+            )}
+          </AccordionContent>
+        </Accordion>
+      </MessageContent>
+    </Message>
+  );
+}
 
 function ChatBox() {
   const [prompt, setPrompt] = useState<string>("");
@@ -422,6 +462,9 @@ function ChatBox() {
             setMessages(result.messages);
             setIsRunning(false);
           },
+          onUpdateMessages(messages) {
+            setMessages(messages);
+          },
         }
       );
     }
@@ -442,14 +485,14 @@ function ChatBox() {
               if (toolNamesToIgnore.includes(tc.function.name)) {
                 return <div key={tcIndex}></div>;
               }
-              const toolResults = array[index + 1];
+              const toolResults = array[index + 1 + tcIndex];
               return (
-                <Message icon key={tcIndex}>
-                  {!toolResults && <Icon name="circle notched" loading />}
-                  <MessageContent>
-                    <MessageHeader>{tc.function.name}</MessageHeader>
-                  </MessageContent>
-                </Message>
+                <ToolInfo
+                  key={tcIndex}
+                  name={tc.function.name}
+                  res={toolResults}
+                  args={tc.function.arguments}
+                ></ToolInfo>
               );
             });
           }
