@@ -23,7 +23,7 @@ export function openAiCompatibleChat(opts: { url: string }) {
         });
         if (res.status === 200) {
           const json = await res.json();
-          console.log(`Response json: ${JSON.stringify(json, null, 2)}`);
+          //console.log(`Response json: ${JSON.stringify(json, null, 2)}`);
           const finish_reason = json.choices[0].finish_reason;
           if (finish_reason === "stop") {
             receiver.onFinished &&
@@ -82,6 +82,7 @@ export function ollamaChatService(url: string): LLMChatService {
 export interface CallableTool {
   description: ChatTool;
   fn: (args: any) => Promise<string>;
+  hideFromUI?: boolean;
 }
 
 export function chatWithTools(chatFnOriginal: ChatFn, tools: CallableTool[]) {
@@ -91,7 +92,7 @@ export function chatWithTools(chatFnOriginal: ChatFn, tools: CallableTool[]) {
       ...(modifiedRequest.tools || []),
       ...tools.map((t) => t.description),
     ];
-    console.log(modifiedRequest);
+    //console.log(modifiedRequest);
     chatFnOriginal(modifiedRequest, {
       onChunk(chunk: string, messages: ChatMessage[]) {
         receiver.onChunk && receiver.onChunk(chunk, messages);
@@ -112,7 +113,7 @@ export function chatWithTools(chatFnOriginal: ChatFn, tools: CallableTool[]) {
                 const res = await tool.fn(
                   JSON.parse(toolCallRequest.function.arguments)
                 );
-                console.log("TOOL RES", res);
+                //console.log("TOOL RES", res);
                 messagesAfterTools.push({
                   role: "tool",
                   content: res,

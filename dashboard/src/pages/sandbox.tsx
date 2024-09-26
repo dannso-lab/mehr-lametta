@@ -8,6 +8,7 @@ import { ChatBox } from "../dannso/ui/ai/chatbox";
 
 import { weatherTool } from "../dannso/ai/llm/tools/weather-tool";
 import { idleTool } from "../dannso/ai/llm/tools/idle-tool";
+import { randomTool } from "../dannso/ai/llm/tools/random-tool";
 
 const Form = withTheme(SemanticUITheme);
 const schema: RJSFSchema = {
@@ -25,7 +26,7 @@ const schema: RJSFSchema = {
 
 const ol = ollamaChatService(`http://localhost:11434`);
 
-const aschat = chatWithTools(ol.chat, [weatherTool, idleTool]);
+const aschat = chatWithTools(ol.chat, [weatherTool, idleTool, randomTool]);
 
 export function Sandbox() {
   return (

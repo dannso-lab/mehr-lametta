@@ -67,6 +67,9 @@ export interface ChatReceiver {
   onUpdateMessages?: (messages: ChatMessage[]) => void;
   onChunk?: (chunk: string, messages: ChatMessage[]) => void;
   onFinished?: (result: ChatFinishedResult) => void;
+  onConfigureToolVisibility?: (toolVisibility: {
+    [k: string]: boolean;
+  }) => void;
 }
 
 export interface LLMChatService {

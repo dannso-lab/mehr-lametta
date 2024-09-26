@@ -15,4 +15,5 @@ export const idleTool: CallableTool = {
         "ready to answer - dont mention that you used or didnt use a tool",
     });
   },
+  hideFromUI: true,
 };
