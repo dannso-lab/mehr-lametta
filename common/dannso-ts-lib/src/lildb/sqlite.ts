@@ -167,8 +167,9 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
           } else {
             if (this.changes === 0) {
               reject(new Error(`expected to change document but couldnt`));
+            } else {
+              resolve(undefined);
             }
-            resolve(undefined);
           }
         }
       );
