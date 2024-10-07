@@ -76,7 +76,7 @@ function testForStorageManager(
           foo: "bar",
         },
         tx: 1,
-        revision: 0,
+        revision: 1,
         isTombstoned: false,
       });
       // 3
@@ -87,7 +87,64 @@ function testForStorageManager(
           foo: "kram",
         },
         tx: 2,
-        revision: 1,
+        revision: 2,
+        isTombstoned: false,
+      });
+    });
+
+    test("can assert revision==0 on new key", async () => {
+      // GIVEN
+      const db = await storageManager.open("revision0ok");
+
+      // WHEN
+      await db.put("mykey", { foo: "bar" }, 0);
+
+      // THEN
+      // ... no exception
+    });
+
+    test("assert revision==0 on established key fails", async () => {
+      // GIVEN
+      const db = await storageManager.open("revision0fail");
+
+      // WHEN
+      await db.put("mykey", { foo: "bar" });
+
+      // THEN
+      await expect(() =>
+        db.put("mykey", { foo: "already exists" }, 0)
+      ).rejects.toThrowError();
+    });
+
+    test("assert revision==42 on established key fails", async () => {
+      // GIVEN
+      const db = await storageManager.open("revisionLargerRevisionFail");
+
+      // WHEN
+      await db.put("mykey", { foo: "bar" });
+
+      // THEN
+      await expect(() =>
+        db.put("mykey", { foo: "already exists" }, 42)
+      ).rejects.toThrowError();
+    });
+
+    test("assert revision==1 on established key is ok and advances key", async () => {
+      // GIVEN
+      const db = await storageManager.open("revision1ok");
+
+      // WHEN
+      await db.put("mykey", { foo: "bar" });
+      await db.put("mykey", { foo: "already exists" }, 1);
+
+      // THEN
+      expect(await db.findOne({ $id: "mykey" })).toStrictEqual({
+        id: "mykey",
+        value: {
+          foo: "already exists",
+        },
+        tx: 2,
+        revision: 2,
         isTombstoned: false,
       });
     });
@@ -105,7 +162,7 @@ function testForStorageManager(
           foo: "bar1",
         },
         tx: 1,
-        revision: 0,
+        revision: 1,
         isTombstoned: false,
       });
       expect(await db.findOne({ $id: "mykey2" })).toStrictEqual({
@@ -114,7 +171,7 @@ function testForStorageManager(
           foo: "bar2",
         },
         tx: 2,
-        revision: 0,
+        revision: 1,
         isTombstoned: false,
       });
       // 3
@@ -125,7 +182,7 @@ function testForStorageManager(
           foo: "kram",
         },
         tx: 3,
-        revision: 1,
+        revision: 2,
 
         isTombstoned: false,
       });
@@ -135,7 +192,7 @@ function testForStorageManager(
           foo: "bar2",
         },
         tx: 2,
-        revision: 0,
+        revision: 1,
 
         isTombstoned: false,
       });
@@ -412,6 +469,7 @@ function testForStorageManager(
 }
 
 testForStorageManager("lildb in-memory", new LilDbStorageManagerMemory());
+
 testForStorageManager(
   "sqlite in-memory",
   new LilDbStorageManagerSqliteInMemory()

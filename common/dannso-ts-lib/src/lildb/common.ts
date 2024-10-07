@@ -55,7 +55,11 @@ export interface QueryResult<ValueType> {
 }
 
 export abstract class LilDb<ValueType> {
-  abstract put(id: string, value: ValueType): Promise<void>;
+  abstract put(
+    id: string,
+    value: ValueType,
+    assertRevision?: number
+  ): Promise<void>;
   abstract query(q: Query): Promise<QueryResult<ValueType>>;
   abstract currentTx(): Promise<number>;
   abstract delete(id: string): Promise<void>;

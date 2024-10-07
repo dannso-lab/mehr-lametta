@@ -1,8 +1,6 @@
 import { secureRandomId } from "../crypto/random";
 import { JSONValue } from "../data/json";
 
-import fs from "node:fs";
-
 import {
   DEFAULT_PAGINATION_LIMIT,
   Doc,
@@ -13,6 +11,8 @@ import {
 } from "./common";
 import sqlite3 from "sqlite3";
 import { stringq } from "../utils/predicates";
+
+import fs from "node:fs";
 
 function sqlrun(db: sqlite3.Database, sql: string, params: string[] = []) {
   return new Promise((resolve, reject) => {
@@ -132,15 +132,42 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
     });
   }
 
-  private _put(id: string, value: ValueType, tombstone: number): Promise<void> {
+  private _put(
+    id: string,
+    value: ValueType,
+    tombstone: number,
+    assertRevision: number | undefined
+  ): Promise<void> {
+    const assertFreshKey = assertRevision === 0;
+    const assertSpecificRevision =
+      !assertFreshKey && assertRevision !== undefined;
+
     return new Promise((resolve, reject) => {
       this.db.run(
-        `insert into docs (id, val, tx, revision, tombstone) VALUES (?, json(?), (select coalesce(max(tx),0) from docs)+1, 0, ?) ON CONFLICT(id) DO UPDATE SET tx=excluded.tx, val=excluded.val, revision=revision+1, tombstone=excluded.tombstone`,
-        [id, JSON.stringify(value), tombstone],
-        (error) => {
+        [
+          `INSERT INTO docs (id, val, tx, revision, tombstone)`,
+          `VALUES (?, json(?), (select coalesce(max(tx),0) from docs)+1, 1, ?)`,
+          [
+            // skip conflict resolution when the user asserted a fresh document
+            assertFreshKey
+              ? ""
+              : `ON CONFLICT(id) DO UPDATE SET tx=excluded.tx, val=excluded.val, revision=revision+1, tombstone=excluded.tombstone`,
+          ],
+          assertSpecificRevision ? `WHERE excluded.revision = ?` : "",
+        ].join(" "),
+        [
+          id,
+          JSON.stringify(value),
+          tombstone,
+          ...(assertSpecificRevision ? [assertRevision] : []),
+        ],
+        function (error) {
           if (error) {
             reject(error);
           } else {
+            if (this.changes === 0) {
+              reject(new Error(`expected to change document but couldnt`));
+            }
             resolve(undefined);
           }
         }
@@ -148,12 +175,12 @@ export class LilDbSqlite<ValueType> extends LilDb<ValueType> {
     });
   }
 
-  put(id: string, value: ValueType): Promise<void> {
-    return this._put(id, value, 0);
+  put(id: string, value: ValueType, assertRevision?: number): Promise<void> {
+    return this._put(id, value, 0, assertRevision);
   }
 
   delete(id: string): Promise<void> {
-    return this._put(id, {} as any, 1);
+    return this._put(id, {} as any, 1, undefined); // TODO: think about it: does it make sense to be able to assert deletions?
   }
 
   query(q: Query): Promise<QueryResult<ValueType>> {

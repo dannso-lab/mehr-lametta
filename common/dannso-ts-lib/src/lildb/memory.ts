@@ -42,14 +42,22 @@ export class LilDbMemory<ValueType> extends LilDb<ValueType> {
     return this.meta.get(id) || null;
   }
 
-  async put(id: string, value: ValueType) {
+  async put(id: string, value: ValueType, assertRevision?: number) {
     this.tx += 1;
     const tx = this.tx;
     let revision = 0;
     const oldDoc = this.store.get(id);
     if (oldDoc) {
-      revision = oldDoc.revision + 1;
+      revision = oldDoc.revision;
     }
+    if (assertRevision !== undefined && revision !== assertRevision) {
+      throw new Error(`revision doesnt match constraint`);
+    }
+
+    if (oldDoc) {
+      revision = oldDoc.revision;
+    }
+    revision += 1;
     this.store.set(id, {
       id,
       tx,

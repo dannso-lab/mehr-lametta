@@ -28,8 +28,8 @@ export class SubLilDb<ValueType> extends LilDb<ValueType> {
     return this.baseDb.getMeta(id);
   }
 
-  put(id: string, value: ValueType) {
-    return this.baseDb.put(`${this.subKey}_${id}`, value);
+  put(id: string, value: ValueType, assertRevision?: number) {
+    return this.baseDb.put(`${this.subKey}_${id}`, value, assertRevision);
   }
 
   delete(id: string) {
